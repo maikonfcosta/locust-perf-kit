@@ -1,0 +1,30 @@
+[project]
+name = "locust-perf-kit"
+version = "0.1.0"
+description = "Deterministic performance testing kit with Locust, SLO gates, and failure injection"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "locust>=2.47.0",
+    "pydantic>=2.14.1",
+    "pytest>=9.1.1",
+    "ruff>=0.17.3",
+]
+
+[project.scripts]
+locust-gate = "locust_perf_kit.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[dependency-groups]
+dev = [
+    "pytest-repeat>=0.9.4",
+]
+

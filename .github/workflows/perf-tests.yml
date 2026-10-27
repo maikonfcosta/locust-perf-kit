@@ -1,0 +1,63 @@
+name: Performance Tests & SLO Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Locust workload profile to run"
+        required: true
+        default: "smoke"
+        type: choice
+        options:
+          - smoke
+          - load
+          - spike
+          - stress
+
+jobs:
+  performance-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run code linter
+        run: uv run ruff check .
+
+      - name: Run unit & failure injection test suite
+        run: uv run pytest tests/test_smoke.py tests/test_gate_failure.py
+
+      - name: Run Locust Performance Gate
+        id: perf-gate
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'smoke' }}"
+          uv run locust-gate --with-mock --profile "$PROFILE"
+
+      - name: Upload performance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-perf-artifacts
+          path: |
+            test-results/report_*.html
+            test-results/locust_*_stats.csv
+            test-results/summary.md
+          retention-days: 14

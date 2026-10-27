@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.ruff_cache/
+
+# Test results and artifacts
+test-results/
+*.csv
+report_*.html
+
+# Virtual environments
+.venv
+.env
