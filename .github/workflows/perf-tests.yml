@@ -37,16 +37,22 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: |
+          uv sync --all-extras --dev
+          uv pip install -e .
 
       - name: Run code linter
         run: uv run ruff check .
 
       - name: Run unit & failure injection test suite
+        env:
+          PYTHONPATH: .
         run: uv run pytest tests/test_smoke.py tests/test_gate_failure.py
 
       - name: Run Locust Performance Gate
         id: perf-gate
+        env:
+          PYTHONPATH: .
         run: |
           PROFILE="${{ github.event.inputs.profile || 'smoke' }}"
           uv run locust-gate --with-mock --profile "$PROFILE"

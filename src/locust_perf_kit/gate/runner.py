@@ -1,6 +1,7 @@
 """Profile definitions, execution runner, and result parser for Locust tests."""
 
 import csv
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,7 +79,14 @@ def run_profile(
         str(out_path / f"report_{profile.name}.html"),
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    env = os.environ.copy()
+    src_dir = str(Path(__file__).resolve().parent.parent.parent)
+    root_dir = str(Path(src_dir).parent)
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    separator = ";" if os.name == "nt" else ":"
+    env["PYTHONPATH"] = f"{root_dir}{separator}{src_dir}{separator}{existing_pythonpath}".strip(separator)
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"Locust run failed with code {result.returncode}:\n{result.stderr}")
 
