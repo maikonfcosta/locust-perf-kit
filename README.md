@@ -8,6 +8,10 @@
 
 Deterministic performance testing kit with **Locust** in Python 3.12 against the **Conduit REST API**. Implements workload modeling (80/20 reader/author distribution), percentile-based SLO gates (p95 / p99 / error rate), step summary generation for GitHub Actions, and automated **failure injection** to prove the gate blocks when performance degrades.
 
+<p align="center">
+  <img src="docs/assets/locust-gate-demo.gif" alt="Locust Performance Gate Execution Demo" width="820"/>
+</p>
+
 ---
 
 ## 🎯 The Engineering Problem
@@ -19,6 +23,35 @@ Deterministic performance testing kit with **Locust** in Python 3.12 against the
 ---
 
 ## 📊 Workload Profiles & Architecture
+
+```mermaid
+flowchart TD
+    subgraph Traffic["Workload Distribution (80/20)"]
+        R["80% Anonymous Readers<br/>(tags, feed, article)"]
+        A["20% Authenticated Authors<br/>(login, publish, favorite, comment)"]
+    end
+
+    subgraph Target["Target System"]
+        M["Mock Conduit API (Zero-Dep CI)<br/>or Docker Compose Staging"]
+    end
+
+    subgraph Engine["Locust Engine"]
+        L["Headless Runner (--csv, --html)"]
+    end
+
+    subgraph Gate["SLO Quality Gate"]
+        V{"SLO Validator"}
+        P["✅ PASS (Exit 0)<br/>p95 < 300ms / err < 1%"]
+        F["❌ FAIL (Exit 1)<br/>Build Broken + Summary"]
+    end
+
+    R & A --> L
+    L -->|HTTP Requests| M
+    M -->|Metrics| L
+    L -->|Aggregated Stats| V
+    V -->|Within SLO| P
+    V -->|SLO Breached| F
+```
 
 ### User Distribution (80/20 Web Model)
 - **80% Anonymous Readers (`AnonymousReaderUser`):** High frequency tag lookups (`GET /api/tags`), global article feed browsing (`GET /api/articles`), and single article inspection (`GET /api/articles/{slug}`).
@@ -47,6 +80,21 @@ The test suite includes `tests/test_gate_failure.py`, which injects 350ms of art
 - **Baseline Run:** p95 is ~8ms → **PASS (Exit 0)**.
 - **Injected Run:** Server latency pushes p95 to 2200ms → **FAIL (Exit 1)**.
 - **Evidence:** Verified by automated tests. The gate reliably breaks the build on SLO violations.
+
+---
+
+## 📈 Visual Reports & Metric Dashboards
+
+Every execution automatically generates self-contained HTML reports (`test-results/report_<profile>.html`) with interactive charts (RPS, response times, percentile distributions, and user concurrency):
+
+<p align="center">
+  <img src="docs/assets/locust-charts.png" alt="Locust Response Times and Concurrency Charts" width="820"/>
+</p>
+
+### Aggregated Performance Statistics
+<p align="center">
+  <img src="docs/assets/locust-dashboard.png" alt="Locust Aggregated Request Statistics Table" width="820"/>
+</p>
 
 ---
 
